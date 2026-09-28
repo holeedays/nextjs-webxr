@@ -12,86 +12,20 @@ import { Cube } from './components/Cube';
 import { XR, createXRStore, XROrigin } from '@react-three/xr';
 
 // My miscellaneous imports
-import { useRef } from "react";
-import { useKeyboardControls } from "@react-three/drei";
-import { useFrame, useThree } from "@react-three/fiber";
+import { keyMap, Controller } from "./components/controller";
 import * as THREE from "three";
 import { JSX } from "react"
+import { CrosshairSprite } from "./components/sprites";
 
 // Create an XR store that manages the WebXR session state
 // This store handles entering/exiting AR/VR modes and manages XR-specific functionality
 const store = createXRStore();
-// key maps that will be serialized by react three drei 
-const keyMap: {name: string, keys: string[]}[] = [
-  { name: "forward", keys: ["ArrowUp", "w", "W"] },
-  { name: "backward", keys: ["ArrowDown", "s", "S"] },
-  { name: "left", keys: ["ArrowLeft", "a", "A"] },
-  { name: "right", keys: ["ArrowRight", "d", "D"] }
-]
-const moveSpeed: number = 5;
-
-function handleMovement(
-  camera: THREE.Camera, 
-  delta: number, 
-  dirBools: {forward: boolean, backward: boolean, left: boolean, right: boolean}
-): void {
-  // get rot
-  const cameraRot: THREE.Quaternion = camera.quaternion;
-  let movementVector: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
-
-  if (dirBools.forward)
-    movementVector.z -= moveSpeed * delta;
-  if (dirBools.backward)
-    movementVector.z += moveSpeed * delta;
-  if (dirBools.left) 
-    movementVector.x -= moveSpeed * delta;
-  if (dirBools.right)
-    movementVector.x += moveSpeed * delta;
-
-  // formula for transforming a vector by a directional vector (quaternion, not euler) is v' = q*v*q^-1
-  // since most of our quaternions are normalized, the inverse quaternion is just where x, y, z are negated HOWEVER three.js does all the 
-  // work  for us so we don't have to do that :)
-  movementVector.applyQuaternion(cameraRot);
-  camera.position.add(movementVector);
-}
-
-function handleCameraRotation(
-  camera: THREE.Camera,
-  mouse: THREE.Vector2,
-  sensitivity: number = 1
-): void {
-  const xRotLimit: {lowerLimit: number, upperLimit: number } = { lowerLimit: -90, upperLimit: 90 };
-
-}
-
-function MovementController(): JSX.Element {  
-  // mouse controls (useThree().mouse is deprecated; use pointer instead)
-  const { pointer } = useThree();
-  // get our keyboard controls
-  const [subscribeKeys, getKeys] = useKeyboardControls();
-
-  // NOTE: useFrame has to be rendered within the canvas so it must be included in a react component; it is the equivalent of update
-  // or a draw function
-  // state incudes all the core components of the scene including camera, gl, canvas, raycaster etc
-  useFrame((state: RootState, delta: number) => {
-    const { forward, backward, left, right } = getKeys();
-    const { camera } = state;
-
-    handleCameraRotation(camera, pointer);
-    handleMovement(camera, delta, {forward, backward, left, right});
-  });
-
-  return (
-    <mesh>
-    </mesh>
-  );
-}
 
 // Main homepage component that renders our 3D scene with XR capabilities
 export default function Home(): JSX.Element {
-
   return (
-    // Container div that takes up the full viewport (100% width and height)
+    // Container div that takes up the full viewport (100% width and height), using 100% for width and height wont work because
+    // it would require additional styling on the body to be 100% width and height so sticking to 100vw/100vh explicity is good enough
     <div style={{ width: '100vw', height: '100vh' }}>
       
       {/* 
@@ -105,7 +39,10 @@ export default function Home(): JSX.Element {
       <KeyboardControls map={keyMap}>
         <Canvas camera={{ position: [5, 5, 5] }}>
 
-          <MovementController />
+          {/* Custom script for movement and camera control */} 
+          <Controller />
+
+          <CrosshairSprite scale={new THREE.Vector3(0.03, 0.03, 0.03)} />
           
           {/* 
             XR WRAPPER
@@ -168,7 +105,7 @@ export default function Home(): JSX.Element {
           */}
           
           {/* Static orange cube positioned at the origin (0, 0, 0) */}
-          <Cube />
+          <Cube userData={{ isInteractable: true }} />
           
           {/* Interactive potted plant that can be clicked to teleport */}
           <PottedPlant scale={10} />
