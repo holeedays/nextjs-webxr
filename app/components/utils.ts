@@ -1,6 +1,4 @@
-import { Racing_Sans_One } from "next/font/google";
 import * as THREE from "three";
-import { float } from "three/webgpu";
 
 // a standard clamp function
 export function clamp(value: number, min: number, max: number): number {
@@ -44,6 +42,5 @@ export function getInteractableObjectsInRaycast(
     // set the direction of the ray to the camera's forward
     raycaster.ray.direction.applyQuaternion(camera.quaternion);
     // return all the interesection points made
-    // I didn't want the raycast check to be recursive so I set the parameter to false
-    return raycaster.intersectObjects(interactableObjects, false);
+    return raycaster.intersectObjects(interactableObjects, true);
 }

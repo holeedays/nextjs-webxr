@@ -35,7 +35,7 @@ export function Model(props: React.ComponentProps<'group'>) {
     // group is like a container that holds multiple 3D objects together
     // It's useful for organizing complex models with multiple parts
     // dispose={null} prevents automatic cleanup, position applies our state
-    <group {...props} dispose={null} position={position}>
+    <group {...props} dispose={null} position={position} userData={{isInteractable: true}}>
       
       {/* 
         The actual 3D mesh that renders the plant model

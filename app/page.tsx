@@ -4,9 +4,9 @@
 
 // Import required components for 3D rendering
 import { Canvas, RootState } from '@react-three/fiber';
-import { OrbitControls, Grid, KeyboardControls } from '@react-three/drei';
+import { OrbitControls, Grid, KeyboardControls, ScrollControls, Scroll } from '@react-three/drei';
 import { Model as PottedPlant } from './components/PottedPlant';
-import { Cube } from './components/Cube';
+import { Cube, Sphere } from "./components/primitives";
 
 // Import XR components for WebXR functionality (AR/VR)
 import { XR, createXRStore, XROrigin } from '@react-three/xr';
@@ -39,10 +39,15 @@ export default function Home(): JSX.Element {
       <KeyboardControls map={keyMap}>
         <Canvas camera={{ position: [5, 5, 5] }}>
 
-          {/* Custom script for movement and camera control */} 
-          <Controller />
+          <ScrollControls eps={100}>
+            {/* Custom script for movement and camera control */} 
+            <Controller />
+          </ScrollControls>
 
+          {/* Sprite to indicate where the viewer's center is at */}
           <CrosshairSprite scale={new THREE.Vector3(0.03, 0.03, 0.03)} />
+
+          <Sphere position={[0,0,10]}/>
           
           {/* 
             XR WRAPPER
