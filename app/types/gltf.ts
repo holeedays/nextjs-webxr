@@ -7,3 +7,6 @@ export type GLTFResult = GLTF & {
   materials: Record<string, THREE.Material>;
   animations: THREE.AnimationClip[];
 };
+
+export interface GLTFAction extends THREE.AnimationClip {
+}

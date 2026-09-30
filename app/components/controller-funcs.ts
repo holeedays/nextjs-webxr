@@ -1,9 +1,6 @@
 import * as THREE from "three";
-import { ScrollControlsState } from "@react-three/drei";
 import { useRef, useEffect, RefObject } from "react";
-import { clamp } from "./utils";
-import { add } from "three/webgpu";
-import { pick } from "next/dist/lib/pick";
+import { clamp, lerpScalar } from "./utils";
 
 // updates the movement of our movement controller
 export function updateMovement(
@@ -97,15 +94,19 @@ export function usePickUpLogic(
 	camera: THREE.Camera, 
 	raycastIntersections: RefObject<THREE.Intersection[]>, 
 	defaultHoldDist: number
-): (scroll: ScrollControlsState, zoomControlBools: {zoom_in: boolean, zoom_out: boolean}) => void {
+): (zoomControlBools: {zoom_in: boolean, zoom_out: boolean}) => void {
 	// NOTE: you must use useRef, useState to actually change the variable or else react wont actually do anything (so nothing
 	// will change for things like useFrame, etc even if the variable actually changed)
 
 	// do note that useState actually triggers a rerender (which essentially causes the component function body
 	// to run again, which can end up refreshing local variables and adding more event listeners if not cleaned 
 	// up properly); use useEffect() in the case of event listeners 
-	const pickedUpObject = useRef<THREE.Object3D | null>(null)
-	const additionalHoldDist = useRef<number>(0);
+	const pickedUpObject: RefObject<THREE.Object3D | null> = useRef<THREE.Object3D | null>(null);
+	// these 2 worked together, additionalHoldDist tries to lerp to targetAdditionalHoldDist essentially
+	const additionalHoldDist: RefObject<number> = useRef<number>(0);
+	const targetAdditionalHoldDist: RefObject<number> = useRef<number>(0);
+	// this variable sets our initial hold distance
+	const initialHoldDist: RefObject<number> = useRef<number>(0);
 
 	// handler for a pick up event (e.g. when the mouse is clicked), wrapped in a useEffect to avoid rendering
 	// multiple listeners
@@ -118,8 +119,13 @@ export function usePickUpLogic(
 			if (pickedUpObject.current === null && raycastIntersections.current.length > 0) {
 
 				// get the objects from our intersection
-				const target: THREE.Object3D = raycastIntersections.current[0].object
+				const target: THREE.Object3D = raycastIntersections.current[0].object;
 				const parent: THREE.Object3D | null = target.parent;
+				// also do this to set our initial hold dist (basically the dist between the pivot (hopefully center
+				// in most cases, may have to edit it in blender... "Asia building glb" not looking too good here") 
+				// and the point that was hit so this is the dist where the object is almost clipping into our camera
+				const intersectionPoint: THREE.Vector3 = raycastIntersections.current[0].point;
+				initialHoldDist.current = intersectionPoint.distanceTo(target.position);
 
 				// this check is for custom 3D models which may be put in a group (like the potted plant)
 				// we want the actual object holding the position (which we should have added the isInteractable
@@ -129,8 +135,9 @@ export function usePickUpLogic(
 				else
 					pickedUpObject.current = target;
 
-				// also reset the additional hold dist here
+				// also reset the additional hold dist vars here
 				additionalHoldDist.current = 0;
+				targetAdditionalHoldDist.current = 0;
 			}
 			else if (pickedUpObject.current !== null) {
 				pickedUpObject.current = null;
@@ -143,22 +150,49 @@ export function usePickUpLogic(
 								// is altered (e.g. the raycastIntersections var itself is reassigned, not 
 								// raycastIntersections.current)
 
+	// since drei's getScroll() hook is not what I intended I will opt for using good old fashioned event listeners for 
+	// scroll (zooming) logic, this handler just deals with adjusting the target additional hold dist, which updates 
+	// additional hold dist directly
+	useEffect(() => {
+		// deltaY is massive so we need a value to reduce it slightly so it's manegable
+		const deltaDampener: number = 0.01;
+
+		const handlePickedUpObjectDistScroll: (ev: Event) => void = (ev: Event) => {
+			const evAsWheelEvent: WheelEvent = ev as WheelEvent;
+			targetAdditionalHoldDist.current -= evAsWheelEvent.deltaY*deltaDampener;
+		}
+		window.addEventListener("wheel", handlePickedUpObjectDistScroll);
+		return () => window.removeEventListener("wheel", handlePickedUpObjectDistScroll);
+	}, []);
+
 	// handler for controlling distance for a picked up object with a wheel event (e.g. scroll)
 	const updatePickedUpObjectDist: (
-		scroll: ScrollControlsState, 
-		zoomControlBools: {zoom_in: boolean, zoom_out: boolean}
+		zoomControlBools: {zoom_in: boolean, zoom_out: boolean},
+		scrollZoomSpeed?: number,
+		keyZoomSpeed?: number
 	) => void = (
-		scroll: ScrollControlsState, 
-		zoomControlBools: {zoom_in: boolean, zoom_out: boolean}
+		zoomControlBools: {zoom_in: boolean, zoom_out: boolean},
+		scrollZoomSpeed: number = 0.05,
+		keyZoomSpeed: number = 0.5
 	) => {
-		// scroll logic here
-		additionalHoldDist.current -= scroll.delta;
-
 		// zoom buttons logic here
-		if (zoomControlBools.zoom_in)
-			additionalHoldDist.current -= 1;
-		if (zoomControlBools.zoom_out)
-			additionalHoldDist.current += 1;
+		// if buttons are pressed, then there is no lerping, only scrolling should actually have the lerping effect
+		if (zoomControlBools.zoom_in) {
+			additionalHoldDist.current -= keyZoomSpeed;
+			targetAdditionalHoldDist.current = additionalHoldDist.current;
+		}
+		if (zoomControlBools.zoom_out) {
+			additionalHoldDist.current += keyZoomSpeed;
+			targetAdditionalHoldDist.current = additionalHoldDist.current;
+		}
+
+		// scroll logic here
+		// a bit spaghetti-like I know but this should be fine
+		additionalHoldDist.current = lerpScalar(
+			additionalHoldDist.current, 
+			targetAdditionalHoldDist.current, 
+			scrollZoomSpeed
+		);
 	}
 
 	// handler for controlling object's transform position (sort of like setting the object as a child here)
@@ -169,7 +203,7 @@ export function usePickUpLogic(
 		// get the camera pos
 		const cameraCurrentPos: THREE.Vector3 = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
 		// get out net hold distance
-		const holdDist: number = defaultHoldDist+additionalHoldDist.current;
+		const holdDist: number = initialHoldDist.current+defaultHoldDist+additionalHoldDist.current;
 		// get our forward vector scaled by hold dist
 		const forwardVector: THREE.Vector3 = new THREE.Vector3(0, 0, -1*holdDist);
 		const targetPos: THREE.Vector3 = cameraCurrentPos.add(
@@ -183,13 +217,13 @@ export function usePickUpLogic(
 	// this will run in useFrame and constantly update our object relative to our camera, sort of like parenting but probably a lot
 	// more laggy :/
 	const updatePickUp: (
-		scroll: ScrollControlsState, 
 		zoomControlBools: {zoom_in: boolean, zoom_out: boolean}
 	) => void = (
-		scroll: ScrollControlsState, 
 		zoomControlBools: {zoom_in: boolean, zoom_out: boolean}
 	) => {
-		updatePickedUpObjectDist(scroll, zoomControlBools);
+		// update our zoom effect for our obj
+		updatePickedUpObjectDist(zoomControlBools);
+		// and update the transform of the object
 		updatePickedUpObjectTransform();
 	}
 

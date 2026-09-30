@@ -10,6 +10,14 @@ export function clamp(value: number, min: number, max: number): number {
     return value;
 }
 
+// a standard lerp function
+export function lerpScalar(value: number, targetValue: number, lerpDelta: number): number {
+    // prevent lerpDelta from leaving the range [0, 1]
+    lerpDelta = clamp(lerpDelta, 0, 1);
+    const diff: number = targetValue - value;
+    return value + diff*lerpDelta;
+}
+
 // gets all objects that have the userData property with isInteractable being true
 export function getInteractableObjectsInScene(scene: THREE.Scene): THREE.Object3D[] {
 	const interactableObjs: THREE.Object3D[] = [];

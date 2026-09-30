@@ -15,7 +15,7 @@ export const keyMap: {name: string, keys: string[]}[] = [
 	{ name: "shift", keys: ["Shift"] },
 
 	// misc keys
-	{ name: "zoom_in", keys: ["+"] },
+	{ name: "zoom_in", keys: ["+", "="] },
 	{ name: "zoom_out", keys: ["-"] }
 ]
 
@@ -26,8 +26,6 @@ export function Controller(): JSX.Element {
 	const {pointer, camera} = useThree();
 	// get our keyboard controls
 	const [subscribeKeys, getKeys] = useKeyboardControls();
-	// get our scroll controls
-	const scroll: ScrollControlsState = useScroll();
 
 	// an array that updates with the current raycast intersections
 	const raycastIntersections: RefObject<THREE.Intersection[]> = useRef<THREE.Intersection[]>([]);
@@ -40,7 +38,6 @@ export function Controller(): JSX.Element {
 
 	// init our pick up logic for interactable objects within the scene and return the handler for our update function
 	const updatePickUp: (
-		scroll: ScrollControlsState, 
 		zoomControlBools: {zoom_in: boolean, zoom_out: boolean}
 	) => void = usePickUpLogic(camera, raycastIntersections, objectHeldDist);
 
@@ -68,7 +65,7 @@ export function Controller(): JSX.Element {
 		updateMovement(camera, delta, {forward, backward, left, right, shift}, normalMoveSpeed, fastMoveSpeed);
 	
 		// update pick up logic here
-		updatePickUp(scroll, {zoom_in, zoom_out});
+		updatePickUp({zoom_in, zoom_out});
 	});
 
 	return (
