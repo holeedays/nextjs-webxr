@@ -148,10 +148,8 @@ function AsiaBuilding(props: React.ComponentProps<"group">): JSX.Element {
 				4. There you have it! An exportable jsx component much like potted_plant.tsx :)
 				5. Do note that you might have to edit the file a bit because not all imports are specified (to satisfy the
 				type) and there's a custom GLTFAction interface which you have to create. It is an interface that extends 
-				from THREE.Animationclips. In the type folder I included the interface with nothing in it and imported into
-				my asia_building.tsx to satisfy the compiler
-
-
+				from THREE.Animationclips. In the type folder I opted for not extending but combining THREE.AnimationClip with
+				an interface that has all the same properties as the animatiom clip. This is simply to satisfy the compiler.
 			*/}
 			{/* <primitive object={scene}>
 			</primitive> */}

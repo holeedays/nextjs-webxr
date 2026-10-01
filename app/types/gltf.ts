@@ -8,5 +8,12 @@ export type GLTFResult = GLTF & {
   animations: THREE.AnimationClip[];
 };
 
-export interface GLTFAction extends THREE.AnimationClip {
+// bitwise operator to combine animation clip and this unnamed interface into one
+export type GLTFAction = THREE.AnimationClip & {
+  name: string,
+  duration: number,
+  tracks: Array<THREE.KeyframeTrack>,
+  blendMode: any,
+  uuid: string,
+  userData: Object
 }
