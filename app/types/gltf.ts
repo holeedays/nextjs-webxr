@@ -13,7 +13,6 @@ export type GLTFAction = THREE.AnimationClip & {
   name: string,
   duration: number,
   tracks: Array<THREE.KeyframeTrack>,
-  blendMode: any,
   uuid: string,
   userData: Object
 }
