@@ -14,5 +14,5 @@ export type GLTFAction = THREE.AnimationClip & {
   duration: number,
   tracks: Array<THREE.KeyframeTrack>,
   uuid: string,
-  userData: Object
+  userData: object
 }
