@@ -13,9 +13,9 @@ export function updateMovement(
   	// get rot
 	const cameraRot: THREE.Quaternion = camera.quaternion;
 	// instantiate a new Vector3 to hold a normalized version of our movment
-	let movementVector: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
+	const movementVector: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
 	// also get the target move speed based on if we held down the shift key or not
-	let targetMoveSpeed: number = dirBools.shift? fastMoveSpeed: normalMoveSpeed;
+	const targetMoveSpeed: number = dirBools.shift? fastMoveSpeed: normalMoveSpeed;
 
 	// check for keyboard inputs
 	if (dirBools.forward)
